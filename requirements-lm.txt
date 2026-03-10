@@ -1,0 +1,4 @@
+# Optional: n-gram language model support (pipeline_lm mode)
+# Requires Python 3.12 and Linux/macOS (kenlm does not build on Windows with Python 3.13)
+kenlm==0.3.0
+pyctcdecode @ git+https://github.com/mediacatch/pyctcdecode.git@ff49fc562bf8fc5d6697d4dcd34188dd630cc977

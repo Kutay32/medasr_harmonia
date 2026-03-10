@@ -1,0 +1,45 @@
+Radyoloji Rapor Şablonları
+
+=== Toraks BT Rapor Şablonu ===
+
+Tetkik Türü: Toraks bilgisayarlı tomografi
+Endikasyon: [Hastanın yaşı, cinsiyeti, şikayeti ve istenme nedeni]
+Teknik: [Kullanılan protokol, kontrast madde bilgisi]
+
+Bulgular:
+- Pulmoner vasküler yapılar: [Pulmoner arter değerlendirmesi, emboli varlığı]
+- Akciğerler: [Parankim değerlendirmesi, pnömotoraks, efüzyon, konsolidasyon]
+- Mediastinal yapılar: [Lenfadenopati, kalp boyutları]
+- Kemik yapılar: [Patolojik bulgu varlığı]
+
+Sonuç: [Kısa ve net değerlendirme]
+
+=== Beyin MRG Rapor Şablonu ===
+
+Tetkik Türü: Beyin manyetik rezonans görüntüleme
+Endikasyon: [Hastanın yaşı, cinsiyeti, şikayeti]
+Teknik: [Sekanslar, kontrast bilgisi]
+
+Bulgular:
+- Serebral parankim: [Sinyal değişiklikleri, kitle lezyonu]
+- Ventriküler sistem: [Genişleme, asimetri]
+- Ekstra-aksiyel mesafeler: [Efüzyon, kanama]
+- Kemik yapılar: [Fraktür, destrüksiyon]
+
+Sonuç: [Kısa ve net değerlendirme]
+
+=== Batın USG Rapor Şablonu ===
+
+Tetkik Türü: Batın ultrasonografi
+Endikasyon: [Hastanın yaşı, cinsiyeti, şikayeti]
+Teknik: Konveks prob ile değerlendirme yapılmıştır.
+
+Bulgular:
+- Karaciğer: [Boyut, parankim ekojenitesi, fokal lezyon]
+- Safra kesesi: [Taş, duvar kalınlığı, polip]
+- Böbrekler: [Boyut, parankim kalınlığı, taş, kist]
+- Dalak: [Boyut, homojenite]
+- Pankreas: [Görüntüleme kalitesi, boyut]
+- Serbest sıvı: [Var/yok, lokalizasyon]
+
+Sonuç: [Kısa ve net değerlendirme]

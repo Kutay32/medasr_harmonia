@@ -1,0 +1,23 @@
+accelerate
+bitsandbytes
+transformers @ git+https://github.com/huggingface/transformers.git@65dc261512cbdb1ee72b88ae5b222f2605aad8e5
+levenshtein
+jiwer
+librosa
+huggingface_hub
+torch
+gradio
+
+# --- RAG & Turkish report generation ---
+python-dotenv
+langchain
+langchain-core
+langchain-community
+langchain-chroma
+langchain-openai
+langchain-ollama
+langchain-huggingface
+chromadb
+sentence-transformers
+pypdf
+docx2txt

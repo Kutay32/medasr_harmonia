@@ -1,0 +1,47 @@
+Tıbbi Terimler Sözlüğü (İngilizce - Türkçe)
+
+Radyoloji Terimleri:
+- CT scan / Computed Tomography = Bilgisayarlı Tomografi (BT)
+- MRI / Magnetic Resonance Imaging = Manyetik Rezonans Görüntüleme (MRG)
+- Ultrasound = Ultrasonografi (USG)
+- X-ray = Röntgen
+- Chest X-ray = Akciğer grafisi / Göğüs röntgeni
+- Contrast = Kontrast madde
+- Filling defect = Dolma defekti
+
+Pulmoner Terimler:
+- Pulmonary embolism (PE) = Pulmoner emboli (PE)
+- Pneumothorax = Pnömotoraks
+- Pleural effusion = Plevral efüzyon
+- Consolidation = Konsolidasyon
+- Atelectasis = Atelektazi
+- Pulmonary artery = Pulmoner arter
+- Saddle embolus = Eyer embolisi
+
+Anatomi Terimleri:
+- Right lower lobe = Sağ alt lob
+- Left upper lobe = Sol üst lob
+- Mediastinum = Mediasten
+- Segmental branches = Segmental dallar
+- Bilateral = Bilateral / İki taraflı
+- Patent = Açık (damar için)
+
+Genel Tıbbi Terimler:
+- Indication = Endikasyon
+- Findings = Bulgular
+- Impression = Sonuç / İzlenim
+- Technique = Teknik
+- Shortness of breath = Nefes darlığı / Dispne
+- Lymphadenopathy = Lenfadenopati
+- Mass lesion = Kitle lezyonu
+
+Rapor Bölümleri:
+- Exam type = Tetkik türü
+- Indication = Endikasyon
+- Technique = Teknik
+- Findings = Bulgular
+- Impression = Sonuç
+- New paragraph = Yeni paragraf
+- Period = Nokta (cümle sonu)
+- Colon = İki nokta üst üste
+- Comma = Virgül

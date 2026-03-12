@@ -5,13 +5,21 @@ from transformers import pipeline
 import re
 import jiwer
 import Levenshtein
+from datetime import datetime
+import tempfile
+from fpdf import FPDF
 
 # Use the normalize function from our existing utils.py
 from utils import normalize
 
-# Import our new feedback DB
+# Import our new feedback DB and Patient DB
 from rag.feedback_db import save_feedback, get_all_feedback
 from rag.vectorstore import add_document
+from database import init_db, load_mock_data, get_all_patients, get_patient_scans, get_scan_by_accession
+
+# Initialize Patient DB and load mock data
+init_db()
+load_mock_data()
 
 # ---------------------------------------------------------------------------
 # Model loading (lazy for Whisper, eager for MedASR)
@@ -296,6 +304,134 @@ except Exception:
     has_sample = False
 
 # ---------------------------------------------------------------------------
+# Patient and Report Handlers
+# ---------------------------------------------------------------------------
+
+def get_patient_choices():
+    patients = get_all_patients()
+    # Format: "Patient Name (ID)"
+    return [f"{p['full_name']} ({p['patient_id']})" for p in patients]
+
+def update_scan_choices(patient_selection):
+    if not patient_selection:
+        return gr.update(choices=[], value=None)
+    
+    try:
+        # Extract ID from "Name (ID)"
+        patient_id = patient_selection.split("(")[-1].strip(")")
+        scans = get_patient_scans(patient_id)
+        
+        if not scans:
+            return gr.update(choices=[], value=None)
+            
+        # Format: "Date - Clinic (Accession: ACC-XXX)"
+        choices = [f"{s.scan_date} - {s.clinic} (Accession: {s.accession_number})" for s in scans]
+        return gr.update(choices=choices, value=choices[0] if choices else None)
+    except Exception as e:
+        print(f"Error updating scans: {e}")
+        return gr.update(choices=[], value=None)
+
+def update_patient_info(scan_selection):
+    if not scan_selection:
+        return "Lütfen bir çekim seçiniz."
+        
+    try:
+        # Extract accession number
+        accession = scan_selection.split("Accession: ")[-1].strip(")")
+        scan = get_scan_by_accession(accession)
+        
+        if not scan:
+            return "Çekim bilgisi bulunamadı."
+            
+        info = f"""
+        **Hasta Adı Soyadı:** {scan.full_name}
+        **Protokol Numarası:** {scan.protocol_number}
+        **Cinsiyet:** {scan.gender}
+        **Doğum Tarihi:** {scan.dob}
+        **Çekim Tarihi:** {scan.scan_date}
+        **Erişim Numarası (Accession):** {scan.accession_number}
+        **Klinik:** {scan.clinic}
+        **LOINC Kodu:** {scan.loinc_code}
+        """
+        return info
+    except Exception as e:
+        return f"Bilgi getirilirken hata: {e}"
+
+def get_report_title_by_loinc(loinc_code):
+    mapping = {
+        "24606-6": "Tarama Mamografisi Raporu",
+        "24604-1": "Tanısal Mamografi Raporu",
+        "26041-4": "Meme Ultrasonografi Raporu"
+    }
+    return mapping.get(loinc_code, "Radyoloji Raporu")
+
+def generate_final_report(scan_selection, generated_body):
+    if not scan_selection or not generated_body:
+        return "Lütfen hasta/çekim seçin ve rapor metnini oluşturun."
+        
+    try:
+        accession = scan_selection.split("Accession: ")[-1].strip(")")
+        scan = get_scan_by_accession(accession)
+        
+        if not scan:
+            return "Çekim bilgisi bulunamadı."
+            
+        title = get_report_title_by_loinc(scan.loinc_code)
+        
+        final_report = f"""{title}
+        
+HASTA BİLGİLERİ (HEADER)
+----------------------------------------
+Adı Soyadı      : {scan.full_name}
+Protokol No     : {scan.protocol_number}
+Erişim No       : {scan.accession_number}
+Doğum Tarihi    : {scan.dob}
+Çekim Tarihi    : {scan.scan_date}
+Klinik          : {scan.clinic}
+----------------------------------------
+
+KLİNİK BULGULAR VE SONUÇ (BODY)
+----------------------------------------
+{generated_body}
+"""
+        return final_report
+    except Exception as e:
+        return f"Rapor birleştirilirken hata: {e}"
+
+def create_pdf(final_report_text):
+    if not final_report_text or "Lütfen hasta/çekim seçin" in final_report_text:
+        return gr.update(value=None, visible=True)
+        
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Use standard Arial/Helvetica but fallback replace Turkish chars to avoid errors
+    pdf.set_font("Helvetica", size=12)
+    
+    # We replace common Turkish characters that might cause encoding issues in basic fonts
+    replacements = {
+        'ğ': 'g', 'Ğ': 'G', 
+        'ş': 's', 'Ş': 'S', 
+        'ı': 'i', 'İ': 'I',
+        'ö': 'o', 'Ö': 'O',
+        'ç': 'c', 'Ç': 'C',
+        'ü': 'u', 'Ü': 'U'
+    }
+    
+    safe_text = final_report_text
+    for tr, eng in replacements.items():
+        safe_text = safe_text.replace(tr, eng)
+        
+    pdf.multi_cell(0, 10, txt=safe_text)
+        
+    # Save to a temporary file and return the path wrapped in gr.update
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(temp_file.name)
+    
+    return gr.update(value=temp_file.name, visible=True)
+
+# ---------------------------------------------------------------------------
 # Gradio UI
 # ---------------------------------------------------------------------------
 with gr.Blocks(title="MedASR + Turkish Report Generator") as demo:
@@ -317,6 +453,23 @@ with gr.Blocks(title="MedASR + Turkish Report Generator") as demo:
             with gr.Row():
                 # ---- Left column: inputs ----
                 with gr.Column(scale=1):
+                    # Patient Selection Section
+                    gr.Markdown("### 1. Hasta Seçimi")
+                    with gr.Group():
+                        patient_selector = gr.Dropdown(
+                            choices=get_patient_choices(),
+                            label="Hasta Seçin",
+                            info="Sisteme kayıtlı hastalar (İsim (ID))"
+                        )
+                        scan_selector = gr.Dropdown(
+                            choices=[],
+                            label="Çekim (Accession) Seçin",
+                            info="Hastaya ait çekimler"
+                        )
+                        patient_info_display = gr.Markdown("Lütfen bir çekim seçiniz.")
+
+                    gr.Markdown("---")
+                    gr.Markdown("### 2. Ses ve Transkripsiyon")
                     audio_input = gr.Audio(sources=["microphone", "upload"], type="filepath", label="Audio Input")
                     
                     lang_selector = gr.Radio(
@@ -351,24 +504,43 @@ with gr.Blocks(title="MedASR + Turkish Report Generator") as demo:
                     
                 # ---- Right column: outputs ----
                 with gr.Column(scale=1):
-                    text_output = gr.Textbox(label="1. Transkripsiyon (Raw Text)", lines=5)
+                    text_output = gr.Textbox(label="Transkripsiyon (Raw Text)", lines=5)
                     detected_lang_output = gr.Textbox(label="Detected Language", lines=1, interactive=False)
                     eval_output = gr.HTML(label="Evaluation (WER & Diff)", visible=False)
                     
                     gr.Markdown("---")
-                    gr.Markdown("### 2. Üretilen Türkçe Tıbbi Rapor (Düzenlenebilir)")
-                    gr.Markdown("*İhtiyaç halinde aşağıdaki metni doğrudan düzenleyebilir ve sisteme kaydedebilirsiniz.*")
-                    
+                    gr.Markdown("### 3. Üretilen Tıbbi Bulgu Metni (Body)")
+                    gr.Markdown("*Aşağıdaki klinik bulgu metnini (Body) düzenleyebilirsiniz.*")
                     report_output = gr.Textbox(
-                        label="Rapor",
-                        lines=15,
+                        label="Klinik Bulgular ve Sonuç (Body)",
+                        lines=10,
                         interactive=True, # Critical: Allow user to edit the output
                     )
                     
                     save_feedback_btn = gr.Button("💾 Düzeltmeleri Kaydet ve Sisteme Öğret", variant="primary")
                     feedback_status = gr.Textbox(label="Kayıt Durumu", interactive=False, lines=1)
 
+                    gr.Markdown("---")
+                    gr.Markdown("### 4. Nihai Birleştirilmiş Rapor")
+                    generate_final_btn = gr.Button("📄 Nihai Raporu Oluştur (Header + Body)", variant="secondary")
+                    final_report_output = gr.Textbox(label="Nihai Rapor", lines=15, interactive=False)
+                    
+                    pdf_download_btn = gr.DownloadButton("📥 PDF Olarak İndir")
+
             # ---- Wire up events for TAB 1 ----
+            # 0. Patient Selection Events
+            patient_selector.change(
+                fn=update_scan_choices,
+                inputs=[patient_selector],
+                outputs=[scan_selector]
+            )
+            
+            scan_selector.change(
+                fn=update_patient_info,
+                inputs=[scan_selector],
+                outputs=[patient_info_display]
+            )
+
             # 1. Only Transcribe
             submit_btn.click(
                 fn=transcribe, 
@@ -397,6 +569,19 @@ with gr.Blocks(title="MedASR + Turkish Report Generator") as demo:
                 outputs=[feedback_status]
             )
             
+            # 5. Generate Final Report & PDF
+            generate_final_btn.click(
+                fn=generate_final_report,
+                inputs=[scan_selector, report_output],
+                outputs=[final_report_output]
+            )
+            
+            final_report_output.change(
+                fn=create_pdf,
+                inputs=[final_report_output],
+                outputs=[pdf_download_btn]
+            )
+
             if has_sample:
                 gr.Examples(
                     examples=[[sample_audio, SAMPLE_TRANSCRIPT, "Auto"]],
